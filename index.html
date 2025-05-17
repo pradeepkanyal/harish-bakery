@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Harish Bakery - Order Form</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <style>
+  body {
+    background-color: #fff7f0;
+  }
+  h2 {
+    color: #cc4c1e;
+  }
+  .form-section {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .hidden {
+    display: none;
+  }
+  #cartSummary {
+    white-space: pre-wrap;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 5px;
+  }
+  .alert-info {
+    font-size: 0.9rem;
+  }
+  .payment-section img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  @media (max-width: 576px) {
+    .form-section {
+      padding: 15px;
+    }
+    h2 {
+      font-size: 1.5rem;
+    }
+    .btn {
+      width: 100%;
+    }
+    .btn + .btn {
+      margin-top: 10px;
+    }
+  }
+</style>
+</head>
+<body class="container mt-5">
+
+  <div class="form-section">
+    <h2 class="mb-4">Order Form - Harish Bakery</h2>
+
+    <form id="orderForm" action="https://formspree.io/f/mpwdbyqd" method="POST">
+      <!-- Customer Info -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label>Name</label>
+          <input type="text" name="name" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+          <label>Phone Number</label>
+          <input type="tel" name="phone" class="form-control" required pattern="[0-9]{10}" placeholder="10-digit number" />
+        </div>
+      </div>
+      <div class="mb-3">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label>Delivery Address</label>
+        <textarea name="address" class="form-control" required></textarea>
+      </div>
+
+      <!-- Product & Type -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label>Product</label>
+          <select id="productSelect" class="form-control" required>
+            <option value="">Select Product</option>
+            <option value="Namkeen">Namkeen</option>
+            <option value="Cookies">Cookies</option>
+            <option value="Mathri">Mathri</option>
+            <option value="Rusk">Rusk</option>
+            <option value="Fan">Fan</option>
+            <option value="Other Bakery Items">Other Bakery Items</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label>Type</label>
+          <select id="typeSelect" class="form-control" disabled></select>
+        </div>
+      </div>
+
+      <!-- Quantity -->
+      <div class="mb-3">
+        <label>Quantity</label>
+        <input type="number" id="quantity" class="form-control" min="1" required />
+      </div>
+
+      <!-- Cart Actions -->
+      <div class="mb-3 d-flex gap-3">
+        <button type="button" class="btn btn-secondary" onclick="addToCart()">Add to Cart</button>
+        <button type="button" class="btn btn-outline-danger" onclick="clearCart()">Clear Cart</button>
+      </div>
+
+      <!-- Cart Display -->
+      <div class="mb-3">
+        <h5>Cart Summary:</h5>
+        <div id="cartSummary"></div>
+        <div class="mt-2"><strong>Items Total: ₹<span id="cartTotal">0</span></strong></div>
+        <div class="mt-1 alert alert-info p-2" id="deliveryMsg"></div>
+        <div class="mt-1"><strong>Grand Total: ₹<span id="grandTotal">0</span></strong></div>
+      </div>
+
+      <!-- Payment Section -->
+      <div class="mb-4 payment-section">
+        <h5>Pay via UPI</h5>
+        <img src="images/62844.jpg" alt="UPI QR Code">
+        <p><strong>UPI ID:</strong> <code>9821322102@ybl</code></p>
+         <p><strong>Whatsapp Number:</strong> <code>9821322102</code></p>
+      </div>
+
+      <input type="hidden" name="cartData" id="cartData" />
+      <input type="hidden" name="totalAmount" id="totalAmount" />
+
+      <button type="submit" class="btn btn-primary">Place Order</button>
+    </form>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="successModalLabel">Order Placed!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Your order has been successfully placed. Thank you for choosing Harish Bakery! 🍪
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const productMap = {
+      "Namkeen": ["Madrasi(70)", "Plain Bhujiya(70)", "Allo Bhujiya(70)", "Navratan(70)", "Ratlami Sev(70)", "Diet Mixture(70)"],
+      "Cookies": ["Atta(30)", "Suji(30)", "Coconut(30)", "JimJam(30)", "Kaju(50)", "Khatai(50)"],
+      "Mathri": ["Cruncy Papdi(30)", "Small Mathri(40)", "Medium Mathri(50)", "Large Mathri(80)"],
+      "Rusk": ["Atta Rusk(30)", "small Suji Rusk(35)", "Large Suji Rusk(40)"],
+      "Fan": ["Baby Fan(30)", "Ajwain Fan(30)", "Large Ajwain Fan(100)"],
+      "Other Bakery Items": ["Allo Pettis(10)", "Paneer Pettis(15)", "Pizza Sandwich(20)", "Burger(20)", "Small Pizza(25)", "Choclate CreamRoll(20)"]
+    };
+
+    const productSelect = document.getElementById("productSelect");
+    const typeSelect = document.getElementById("typeSelect");
+    const quantity = document.getElementById("quantity");
+    const cartSummary = document.getElementById("cartSummary");
+    const cartDataInput = document.getElementById("cartData");
+    const cartTotalDisplay = document.getElementById("cartTotal");
+    const grandTotalDisplay = document.getElementById("grandTotal");
+    const deliveryMsg = document.getElementById("deliveryMsg");
+    const totalAmountInput = document.getElementById("totalAmount");
+
+    let cart = [];
+
+    productSelect.addEventListener("change", () => {
+      const selectedProduct = productSelect.value;
+      typeSelect.innerHTML = "";
+      typeSelect.disabled = true;
+
+      if (productMap[selectedProduct]) {
+        productMap[selectedProduct].forEach(item => {
+          const option = document.createElement("option");
+          option.value = item;
+          option.textContent = item;
+          typeSelect.appendChild(option);
+        });
+        typeSelect.disabled = false;
+      }
+    });
+
+    function extractPrice(text) {
+      const match = text.match(/\((\d+)\)/);
+      return match ? parseInt(match[1]) : 0;
+    }
+
+    function addToCart() {
+      const product = productSelect.value;
+      const type = typeSelect.value;
+      const qty = parseInt(quantity.value);
+
+      if (!product || !type || isNaN(qty) || qty < 1) {
+        alert("Please fill all fields properly.");
+        return;
+      }
+
+      const pricePerUnit = extractPrice(type);
+      const itemTotal = pricePerUnit * qty;
+      cart.push({ product, type, quantity: qty, price: pricePerUnit, total: itemTotal });
+      updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+      let summary = "", total = 0;
+      cart.forEach((item, idx) => {
+        summary += `${idx + 1}. ${item.product} - ${item.type} x${item.quantity} = ₹${item.total}\n`;
+        total += item.total;
+      });
+
+      let deliveryCharge = 0;
+      if (total < 500) {
+        deliveryCharge = 50;
+        deliveryMsg.textContent = "Note: ₹50 delivery charge applied for orders below ₹500.";
+      } else {
+        deliveryMsg.textContent = "Delivery is FREE for orders above ₹500!";
+      }
+
+      let grandTotal = total + deliveryCharge;
+
+      cartSummary.textContent = summary || "Cart is empty.";
+      cartDataInput.value = summary;
+      cartTotalDisplay.textContent = total;
+      grandTotalDisplay.textContent = grandTotal;
+      totalAmountInput.value = grandTotal;
+    }
+
+    function clearCart() {
+      cart = [];
+      updateCartDisplay();
+    }
+
+    document.getElementById("orderForm").addEventListener("submit", function(e) {
+  if (cart.length === 0) {
+    e.preventDefault();
+    alert("Your cart is empty!");
+    return;
+  }
+
+  e.preventDefault(); // prevent default for now
+
+  const modal = new bootstrap.Modal(document.getElementById("successModal"));
+  modal.show();
+
+  // Automatically submit after short delay (e.g., 2 seconds)
+  setTimeout(() => {
+    e.target.submit(); // now submit the form
+  }, 2000);
+});
+  </script>
+</body>
+</html>
